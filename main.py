@@ -2,8 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import sv_ttk
 import pyautogui
-import threading
-import keyboard  # New import for hotkey detection
+import keyboard
 
 class RocketLeagueMacro:
     def __init__(self, root):
@@ -13,17 +12,13 @@ class RocketLeagueMacro:
         self.team_chat_key = None
         self.public_chat_key = None
 
-        # Set up the main window
         self.setup_window()
 
-        # Set the dark theme
         sv_ttk.set_theme("dark")
 
-        # Create the frame
         self.frame = ttk.Frame(self.root)
         self.frame.pack(fill=tk.BOTH, expand=True)
 
-        # Add widgets to the frame
         self.create_widgets()
 
     def setup_window(self):
@@ -56,30 +51,26 @@ class RocketLeagueMacro:
 
             self.entries.append((shortcut_key, chat_message))
 
-        # Add a line to separate the chat macros from the team and public chat keys
         separator = ttk.Separator(self.frame, orient="horizontal", style="TSeparator")
         separator.grid(row=6, column=0, columnspan=4, sticky="ew", padx=8, pady=8)
 
-        # Add team chat key entry
         team_chat_label = ttk.Label(self.frame, text="Team Chat Key:")
         team_chat_label.grid(row=7, column=0, sticky=tk.W, padx=0, pady=8)
         self.team_chat_entry = ttk.Entry(self.frame, width=4)
         self.team_chat_entry.grid(row=7, column=1, padx=8, pady=0)
         self.team_chat_entry.insert(0, "T")
 
-        # Add public chat key entry
         public_chat_label = ttk.Label(self.frame, text="Public Chat Key:")
         public_chat_label.grid(row=8, column=0, sticky=tk.W, padx=0, pady=8)
         self.public_chat_entry = ttk.Entry(self.frame, width=4)
         self.public_chat_entry.grid(row=8, column=1, padx=8, pady=0)
         self.public_chat_entry.insert(0, "Y")
 
-        # Separator for the chat keys
         separator2 = ttk.Separator(self.frame, orient="horizontal", style="TSeparator")
         separator2.grid(row=9, column=0, columnspan=4, sticky="ew", padx=8, pady=8)
 
-        # Define custom styles for the toggle button
         style = ttk.Style()
+        # doesnt work
         style.configure("Enabled.TButton", background="green")
         style.configure("Disabled.TButton", background="red")
 
@@ -93,7 +84,6 @@ class RocketLeagueMacro:
         # Toggle the status
         self.is_enabled = not self.is_enabled
 
-        # Update button text and style based on the status
         if self.is_enabled:
             self.toggle_button.config(text="Disable Macros", style="Enabled.TButton")
             self.load_macros()
@@ -106,6 +96,7 @@ class RocketLeagueMacro:
         self.macros.clear()
         for key_entry, message_entry in self.entries:
             key = key_entry.get().strip()
+            #the keys need to be keycode
             message = message_entry.get().strip()
             if key and message:
                 self.macros[key] = message
@@ -115,23 +106,23 @@ class RocketLeagueMacro:
         self.public_chat_key = self.public_chat_entry.get().strip()
 
     def start_macro_listener(self):
-        # Run the background listener on a separate thread
-        listener_thread = threading.Thread(target=self.background_listener, daemon=True)
-        listener_thread.start()
+        # Start the key press listener using tkinter's after() method
+        self.listen_for_macros()
 
-    def background_listener(self):
+    def listen_for_macros(self):
         # Listen for key presses and execute macros if enabled
-        while self.is_enabled:
+        if self.is_enabled:
             for key, message in self.macros.items():
                 if keyboard.is_pressed(key):
                     # Determine chat mode
-                    chat_key = self.team_chat_key if self.is_team_only else self.public_chat_key
+                    chat_key = self.team_chat_key  # Assuming you want to send team chat
                     pyautogui.press(chat_key)
                     pyautogui.write(message)
                     pyautogui.press('enter')
+                    break  # To prevent multiple triggers at the same time
 
-            # Sleep for a short interval to avoid high CPU usage
-            self.root.after(100)
+            # Schedule the next check
+            self.root.after(100, self.listen_for_macros)  # Repeat every 100 ms
 
 def main():
     root = tk.Tk()
